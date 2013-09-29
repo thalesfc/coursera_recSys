@@ -1,6 +1,6 @@
 import numpy
 
-ffile = open('saida', 'w')
+ffile = open('data/non-personalized.dat', 'w')
 
 def get_names(array, k, recommendations):
   returned = []
@@ -52,7 +52,7 @@ count_m = 0
 
 data = []
 
-with open('recsys-data-ratings.csv') as f:
+with open('data/recsys-data-ratings.csv') as f:
   for line in f:
     line = line.strip()
     tk1, tk2, tk3 = line.split(',') # user, movie, rating
