@@ -7,6 +7,7 @@ import org.grouplens.lenskit.data.pref.Preference;
 import org.grouplens.lenskit.vectors.MutableSparseVector;
 import org.grouplens.lenskit.vectors.SparseVector;
 import org.grouplens.lenskit.vectors.VectorEntry;
+import org.grouplens.lenskit.vectors.similarity.CosineVectorSimilarity;
 
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
@@ -52,9 +53,12 @@ public class TFIDFItemScorer extends AbstractItemScorer {
             // Score the item represented by 'e'.
             // Get the item vector for this item
             SparseVector iv = model.getItemVector(e.getKey());
-            // TODO Compute the cosine of this item and the user's profile, store it in the output vector
-            // TODO And remove this exception to say you've implemented it
-            throw new UnsupportedOperationException("stub implementation");
+            // Compute the cosine of this item and the user's profile, store it in the output vector
+            double similarity = new CosineVectorSimilarity().similarity(iv, userVector);
+            output.set(e.getKey(), similarity);
+            
+            // And remove this exception to say you've implemented it
+            //throw new UnsupportedOperationException("stub implementation");
         }
     }
 
@@ -70,6 +74,7 @@ public class TFIDFItemScorer extends AbstractItemScorer {
         MutableSparseVector profile = model.newTagVector();
         // Fill it with 0's initially - they don't like anything
         profile.fill(0);
+        
 
         // Iterate over the user's ratings to build their profile
         for (Rating r: userRatings) {
@@ -80,6 +85,9 @@ public class TFIDFItemScorer extends AbstractItemScorer {
             if (p != null && p.getValue() >= 3.5) {
                 // The user likes this item!
                 // TODO Get the item's vector and add it to the user's profile
+            	long itemId = p.getItemId();
+            	SparseVector iv = model.getItemVector(itemId);
+            	profile.add(iv);
             }
         }
 
@@ -87,4 +95,15 @@ public class TFIDFItemScorer extends AbstractItemScorer {
         // It is good practice to return a frozen vector.
         return profile.freeze();
     }
+    
+//  double sumRatings = 0.0;
+//  int numRatings = 0;
+//  for( Rating r : userRatings){
+//  	Preference p = r.getPreference();
+//  	if (p != null){
+//  		sumRatings += p.getValue();
+//  		numRatings += 1;
+//  	}
+//  }
+//  double meanRatings = sumRatings/numRatings;
 }
