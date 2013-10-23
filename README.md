@@ -17,6 +17,8 @@ systems that recommend products or information, often based on extensive persona
 
 * [X] Basic-concepts.
 * [X] Non-personalized recommenders.
-* [_] Content-based recommenders.
+* [X] Content-based recommenders.
+* [X] User-User Collaborative Filtering.
+* [] Evaluation. 
 
 ======
