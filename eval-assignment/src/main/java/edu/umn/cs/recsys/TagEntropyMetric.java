@@ -1,10 +1,7 @@
 package edu.umn.cs.recsys;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.annotation.Nonnull;
@@ -17,6 +14,8 @@ import org.grouplens.lenskit.eval.metrics.TestUserMetricAccumulator;
 import org.grouplens.lenskit.eval.metrics.topn.ItemSelectors;
 import org.grouplens.lenskit.eval.traintest.TestUser;
 import org.grouplens.lenskit.scored.ScoredId;
+import org.grouplens.lenskit.vectors.MutableSparseVector;
+import org.grouplens.lenskit.vectors.VectorEntry;
 
 import com.google.common.collect.ImmutableList;
 
@@ -95,49 +94,46 @@ public class TagEntropyMetric extends AbstractTestUserMetric {
 			}
 			LenskitRecommender lkrec = (LenskitRecommender) testUser.getRecommender();
 			ItemTagDAO tagDAO = lkrec.get(ItemTagDAO.class);
-			//TagVocabulary vocab = lkrec.get(TagVocabulary.class);
+			TagVocabulary vocab = lkrec.get(TagVocabulary.class);
 
 			double entropy = 0;
-
+			
+			MutableSparseVector tagVector = vocab.newTagVector();
+			tagVector.fill(0.0);
+			
 			/*
-			 * Creating the uniqueCaseInsensitiveTagsInRecommendationListForThisUser
+			 * iterate in every movie
 			 */
-			// unique Case Insensitive Tags In Recommendation List For This User
-			Set<String> uniqTags = new HashSet<String>();
-			// {movie_id : set(movie_tags)}
-			Map<Long, Set<String>> moviesTags = new HashMap<Long, Set<String>>(recommendations.size());
-			for (ScoredId movie : recommendations) {
-				Set<String> movieTags = new HashSet<String>();
-				List<String> tags = tagDAO.getItemTags(movie.getId());
-				for(String tag : tags){
-					String normalized = tag.toLowerCase();
-					movieTags.add(normalized);
+			for( ScoredId movie : recommendations){
+				/*
+				 * getting normalizedTags
+				 */
+				Set<Long> normalizedTags = new HashSet<Long>();
+				List<String> movieTags = tagDAO.getItemTags(movie.getId());
+				for (String tag : movieTags) {
+					long tagId = vocab.getTagId(tag);
+					normalizedTags.add(tagId);
 				}
-				moviesTags.put(movie.getId(), movieTags);
-				uniqTags.addAll(movieTags);
-			}
-
-			/*
-			 * # Unique Case Insensitive Tags For This Movie
-			 */
-			double numberOfUniqueCaseInsensitiveTagsForThisMovie = uniqTags.size();
-			double numberOfMoviesInTheRecommendationList = recommendations.size();
-
-			/*
-			 * calculating entropy
-			 */
-			for(String tag : uniqTags){
-				double Pt_given_List = 0.0;
-				for(Entry<Long, Set<String>> entry : moviesTags.entrySet()){
-					Set<String> mTags = entry.getValue();
-					if(mTags.contains(tag)){
-						Pt_given_List += 1.0/numberOfUniqueCaseInsensitiveTagsForThisMovie;
-					}
+				
+				/*
+				 * iterating through normalizedTags
+				 */
+				for(Long tagId : normalizedTags){
+					tagVector.add(tagId, (1.0 / normalizedTags.size() * 1.0 / recommendations.size()));
 				}
-				Pt_given_List /= numberOfMoviesInTheRecommendationList;
-				entropy -= Pt_given_List*Math.log(Pt_given_List); //entropy in nats
 			}
-			entropy /= Math.log(2.0); //entropy in bits 
+			
+			/*
+			 * computes entropy
+			 */
+			for (VectorEntry vectorEntry : tagVector.fast(VectorEntry.State.EITHER)) {
+				if (vectorEntry.getValue() != 0.0) {
+					double Pt_L = vectorEntry.getValue();
+					entropy += -Pt_L * (Math.log(Pt_L) / Math.log(2));
+				}
+			}
+			
+			
 			totalEntropy += entropy; //overall entropy for all users on this partition 
 			userCount += 1; //number of users for averaging the entropy for this partition
 			return new Object[]{entropy};
