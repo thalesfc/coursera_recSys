@@ -15,11 +15,11 @@ systems that recommend products or information, often based on extensive persona
 
 ## Modules
 
-- [X] Basic-concepts.
-- [X] Non-personalized recommenders.
-- [X] Content-based recommenders.
-- [X] User-User Collaborative Filtering.
-- [X] Evaluation. 
+- [x] Basic-concepts.
+- [x] Non-personalized recommenders.
+- [x] Content-based recommenders.
+- [x] User-User Collaborative Filtering.
+- [x] Evaluation. 
 - [ ] Item-Item Collaborative Filtering
 
 ======
