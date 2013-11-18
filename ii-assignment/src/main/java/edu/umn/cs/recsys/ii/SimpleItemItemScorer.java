@@ -12,6 +12,8 @@ import org.grouplens.lenskit.vectors.MutableSparseVector;
 import org.grouplens.lenskit.vectors.SparseVector;
 import org.grouplens.lenskit.vectors.VectorEntry;
 
+import it.unimi.dsi.fastutil.longs.LongSortedSet;
+
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import java.util.List;
@@ -20,46 +22,56 @@ import java.util.List;
  * @author <a href="http://www.grouplens.org">GroupLens Research</a>
  */
 public class SimpleItemItemScorer extends AbstractItemScorer {
-    private final SimpleItemItemModel model;
-    private final UserEventDAO userEvents;
-    private final int neighborhoodSize;
+	private final SimpleItemItemModel model;
+	private final UserEventDAO userEvents;
+	private final int neighborhoodSize;
 
-    @Inject
-    public SimpleItemItemScorer(SimpleItemItemModel m, UserEventDAO dao,
-                                @NeighborhoodSize int nnbrs) {
-        model = m;
-        userEvents = dao;
-        neighborhoodSize = nnbrs;
-    }
+	@Inject
+	public SimpleItemItemScorer(SimpleItemItemModel m, UserEventDAO dao,
+			@NeighborhoodSize int nnbrs) {
+		model = m;
+		userEvents = dao;
+		neighborhoodSize = nnbrs;
+	}
 
-    /**
-     * Score items for a user.
-     * @param user The user ID.
-     * @param scores The score vector.  Its key domain is the items to score, and the scores
-     *               (rating predictions) should be written back to this vector.
-     */
-    @Override
-    public void score(long user, @Nonnull MutableSparseVector scores) {
-        SparseVector ratings = getUserRatingVector(user);
+	/**
+	 * Score items for a user.
+	 * @param user The user ID.
+	 * @param scores The score vector.  Its key domain is the items to score, and the scores
+	 *               (rating predictions) should be written back to this vector.
+	 */
+	@Override
+	public void score(long user, @Nonnull MutableSparseVector scores) {
+		SparseVector ratings = getUserRatingVector(user);
+		LongSortedSet userRatedItems = ratings.keySet();
 
-        for (VectorEntry e: scores.fast(VectorEntry.State.EITHER)) {
-            long item = e.getKey();
-            List<ScoredId> neighbors = model.getNeighbors(item);
-            // TODO Score this item and save the score into scores
-        }
-    }
+		for (VectorEntry e: scores.fast(VectorEntry.State.EITHER)) {
+			long item = e.getKey();
+			List<ScoredId> neighbors = model.getNeighbors(item);
+			for (ScoredId scorePair : neighbors) {
+				long itemId = scorePair.getId();
+				double score = scorePair.getScore();
 
-    /**
-     * Get a user's ratings.
-     * @param user The user ID.
-     * @return The ratings to retrieve.
-     */
-    private SparseVector getUserRatingVector(long user) {
-        UserHistory<Rating> history = userEvents.getEventsForUser(user, Rating.class);
-        if (history == null) {
-            history = History.forUser(user);
-        }
+				// only considers rated by the user
+				if(userRatedItems.contains(itemId)){
+					System.out.println("Item ID: " + itemId + ", Similarity: " + score);
+				}
+			}
+			// TODO Score this item and save the score into scores
+		}
+	}
 
-        return RatingVectorUserHistorySummarizer.makeRatingVector(history);
-    }
+	/**
+	 * Get a user's ratings.
+	 * @param user The user ID.
+	 * @return The ratings to retrieve.
+	 */
+	private SparseVector getUserRatingVector(long user) {
+		UserHistory<Rating> history = userEvents.getEventsForUser(user, Rating.class);
+		if (history == null) {
+			history = History.forUser(user);
+		}
+
+		return RatingVectorUserHistorySummarizer.makeRatingVector(history);
+	}
 }
