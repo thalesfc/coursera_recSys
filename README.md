@@ -20,6 +20,8 @@ systems that recommend products or information, often based on extensive persona
 - [x] Content-based recommenders.
 - [x] User-User Collaborative Filtering.
 - [x] Evaluation. 
-- [ ] Item-Item Collaborative Filtering
+- [x] Item-Item Collaborative Filtering
+- [ ] Dimensionality Reduction
+
 
 ======
