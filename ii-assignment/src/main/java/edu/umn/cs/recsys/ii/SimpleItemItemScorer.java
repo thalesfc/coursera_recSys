@@ -46,18 +46,32 @@ public class SimpleItemItemScorer extends AbstractItemScorer {
 		LongSortedSet userRatedItems = ratings.keySet();
 
 		for (VectorEntry e: scores.fast(VectorEntry.State.EITHER)) {
+			//  Score this item and save the score into scores
 			long item = e.getKey();
 			List<ScoredId> neighbors = model.getNeighbors(item);
+			
+			double upperPart = 0.0, downPart = 0.0;
+			
+			int neighCount = 0;
+			
 			for (ScoredId scorePair : neighbors) {
-				long itemId = scorePair.getId();
-				double score = scorePair.getScore();
+				long neighID = scorePair.getId();
+				double similarity = scorePair.getScore();
 
 				// only considers rated by the user
-				if(userRatedItems.contains(itemId)){
-					System.out.println("Item ID: " + itemId + ", Similarity: " + score);
+				if(userRatedItems.contains(neighID)){
+					// only iterates over neighborhoodSize neighbors
+					if(neighborhoodSize == neighCount++) break;
+						
+					double rating = ratings.get(neighID);
+//					System.out.println("Item ID: " + itemId + ", Similarity: " + similarity);
+					upperPart += rating * similarity;
+					downPart += similarity;
 				}
 			}
-			// TODO Score this item and save the score into scores
+			
+			double score = upperPart / downPart;
+			scores.set(e, score);
 		}
 	}
 
