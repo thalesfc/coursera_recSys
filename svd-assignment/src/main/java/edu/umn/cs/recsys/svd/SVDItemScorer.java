@@ -61,6 +61,12 @@ public class SVDItemScorer extends AbstractItemScorer {
 	public void score(long user, @Nonnull MutableSparseVector scores) {
 		// Score the items in the key domain of scores
 		RealMatrix ua = model.getUserVector(user);
+		if(ua == null){
+			System.err.println("$$$ NULL USER");
+			scores.clear();
+			return;
+		}
+		
 		RealMatrix sigma = model.getFeatureWeights();
 		RealMatrix V = model.getItemFeatureMatrix();
 
@@ -71,7 +77,6 @@ public class SVDItemScorer extends AbstractItemScorer {
 //		printMatrixSize("sigma", sigma);
 //		printMatrixSize("V^t", V.transpose());
 //		printMatrixSize("pa", pa);
-
 		SparseVector baselines = baselineScorer.score(user, scores.keyDomain());
 
 		for (VectorEntry e: scores.fast(VectorEntry.State.EITHER)) {
