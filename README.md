@@ -21,7 +21,7 @@ systems that recommend products or information, often based on extensive persona
 - [x] User-User Collaborative Filtering.
 - [x] Evaluation. 
 - [x] Item-Item Collaborative Filtering
-- [ ] Dimensionality Reduction
-
+- [X] Dimensionality Reduction
+- [ ] Advanced Topics: Securaty, privacy, cold-start, context-aware recommenders
 
 ======
