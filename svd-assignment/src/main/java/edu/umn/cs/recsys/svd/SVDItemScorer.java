@@ -22,55 +22,81 @@ import javax.inject.Inject;
  * SVD-based item scorer.
  */
 public class SVDItemScorer extends AbstractItemScorer {
-    private static final Logger logger = LoggerFactory.getLogger(SVDItemScorer.class);
-    private final SVDModel model;
-    private final ItemScorer baselineScorer;
-    private final UserEventDAO userEvents;
+	private static final Logger logger = LoggerFactory.getLogger(SVDItemScorer.class);
+	private final SVDModel model;
+	private final ItemScorer baselineScorer;
+	private final UserEventDAO userEvents;
 
-    /**
-     * Construct an SVD item scorer using a model.
-     * @param m The model to use when generating scores.
-     * @param uedao A DAO to get user rating profiles.
-     * @param baseline The baseline scorer (providing means).
-     */
-    @Inject
-    public SVDItemScorer(SVDModel m, UserEventDAO uedao,
-                         @BaselineScorer ItemScorer baseline) {
-        model = m;
-        baselineScorer = baseline;
-        userEvents = uedao;
-    }
+	/**
+	 * Construct an SVD item scorer using a model.
+	 * @param m The model to use when generating scores.
+	 * @param uedao A DAO to get user rating profiles.
+	 * @param baseline The baseline scorer (providing means).
+	 */
+	@Inject
+	public SVDItemScorer(SVDModel m, UserEventDAO uedao,
+			@BaselineScorer ItemScorer baseline) {
+		model = m;
+		baselineScorer = baseline;
+		userEvents = uedao;
+	}
 
-    /**
-     * Score items in a vector. The key domain of the provided vector is the
-     * items to score, and the score method sets the values for each item to
-     * its score (or unsets it, if no score can be provided). The previous
-     * values are discarded.
-     *
-     * @param user   The user ID.
-     * @param scores The score vector.
-     */
-    @Override
-    public void score(long user, @Nonnull MutableSparseVector scores) {
-        // TODO Score the items in the key domain of scores
+	/**
+	 * Helper function that prints the size of a given matrix
+	 */
+	public void printMatrixSize(String label, RealMatrix matrix){
+		System.out.println(label + ": " + matrix.getRowDimension() + " x " + matrix.getColumnDimension());
+	}
 
-        for (VectorEntry e: scores.fast(VectorEntry.State.EITHER)) {
-            long item = e.getKey();
-            // TODO Set the scores
-        }
-    }
+	/**
+	 * Score items in a vector. The key domain of the provided vector is the
+	 * items to score, and the score method sets the values for each item to
+	 * its score (or unsets it, if no score can be provided). The previous
+	 * values are discarded.
+	 *
+	 * @param user   The user ID.
+	 * @param scores The score vector.
+	 */
+	@Override
+	public void score(long user, @Nonnull MutableSparseVector scores) {
+		// Score the items in the key domain of scores
+		RealMatrix ua = model.getUserVector(user);
+		RealMatrix sigma = model.getFeatureWeights();
+		RealMatrix V = model.getItemFeatureMatrix();
 
-    /**
-     * Get a user's ratings.
-     * @param user The user ID.
-     * @return The ratings to retrieve.
-     */
-    private SparseVector getUserRatingVector(long user) {
-        UserHistory<Rating> history = userEvents.getEventsForUser(user, Rating.class);
-        if (history == null) {
-            history = History.forUser(user);
-        }
+		RealMatrix pa = ua.multiply(sigma.multiply(V.transpose()));
 
-        return RatingVectorUserHistorySummarizer.makeRatingVector(history);
-    }
+		// printing to debug
+//		printMatrixSize("ua", ua);
+//		printMatrixSize("sigma", sigma);
+//		printMatrixSize("V^t", V.transpose());
+//		printMatrixSize("pa", pa);
+
+		SparseVector baselines = baselineScorer.score(user, scores.keyDomain());
+
+		for (VectorEntry e: scores.fast(VectorEntry.State.EITHER)) {
+			// Set the scores
+			long item = e.getKey();
+			double bai = baselines.get(e);
+			int i = model.getItemIndMapping().tryGetIndex(item);
+//			System.out.println("item:" + item + " " +i);
+			
+			double pai = bai + pa.getEntry(0, i);
+			scores.set(e, pai);
+		}
+	}
+
+	/**
+	 * Get a user's ratings.
+	 * @param user The user ID.
+	 * @return The ratings to retrieve.
+	 */
+	private SparseVector getUserRatingVector(long user) {
+		UserHistory<Rating> history = userEvents.getEventsForUser(user, Rating.class);
+		if (history == null) {
+			history = History.forUser(user);
+		}
+
+		return RatingVectorUserHistorySummarizer.makeRatingVector(history);
+	}
 }

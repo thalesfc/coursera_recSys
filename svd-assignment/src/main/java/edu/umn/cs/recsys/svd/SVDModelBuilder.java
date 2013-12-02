@@ -87,7 +87,7 @@ public class SVDModelBuilder implements Provider<SVDModel> {
 		
 		// Replace this throw line with returning the model when you are finished
 //		throw new UnsupportedOperationException("SVD model not yet implemented");
-		return new SVDModel(userMapping, userMapping, U, V, S);
+		return new SVDModel(userMapping, itemMapping, U, V, S);
 	}
 
 	/**
